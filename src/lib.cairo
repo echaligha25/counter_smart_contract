@@ -1,5 +1,5 @@
 #[starknet::interface]
-trait ICounter<T> {
+pub trait ICounter<T> {
     fn get_counter(self: @T) -> u32;
     fn increase_counter(ref self: T);
     fn decrease_counter(ref self: T);
@@ -8,16 +8,15 @@ trait ICounter<T> {
 
 
 #[starknet::contract]
-mod Counter {
-
+pub mod Counter {
     use super::ICounter;
     use openzeppelin_access::ownable::OwnableComponent;
     use starknet::ContractAddress;
-    use starknet::storage::{StoragePointerReadAccess,StoragePointerWriteAccess};
-    
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
-    
-      // Ownable Mixin
+
+    // Ownable Mixin
     #[abi(embed_v0)]
     impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
     impl InternalImpl = OwnableComponent::InternalImpl<ContractState>;
@@ -27,33 +26,30 @@ mod Counter {
     struct Storage {
         counter: u32,
         #[substorage(v0)]
-        ownable: OwnableComponent::Storage
-        
+        ownable: OwnableComponent::Storage,
     }
-    
+
     #[event]
     #[derive(Drop, starknet::Event)]
     pub enum Event {
         CounterIncreased: CounterIncreased,
         CounterDecreased: CounterDecreased,
         #[flat]
-        OwnableEvent: OwnableComponent::Event
+        OwnableEvent: OwnableComponent::Event,
     }
 
     #[derive(Drop, starknet::Event)]
-    struct CounterIncreased {
-        counter: u32,
-
+    pub struct CounterIncreased {
+        pub counter: u32,
     }
 
     #[derive(Drop, starknet::Event)]
-    struct CounterDecreased {
-        counter: u32,
-
+    pub struct CounterDecreased {
+        pub counter: u32,
     }
 
-    pub mod Errors{
-        pub const NEGATIVE_COUNTER: felt252='Counter can\'t be negative';
+    pub mod Errors {
+        pub const NEGATIVE_COUNTER: felt252 = 'Counter can\'t be negative';
     }
 
     #[constructor]
@@ -64,31 +60,28 @@ mod Counter {
 
     #[abi(embed_v0)]
     impl CounterImple of ICounter<ContractState> {
-        
-
         fn get_counter(self: @ContractState) -> u32 {
             self.counter.read()
         }
 
-        fn increase_counter(ref self: ContractState){
-            let old_counter= self.counter.read();
-            let new_counter= old_counter + 1;
+        fn increase_counter(ref self: ContractState) {
+            let old_counter = self.counter.read();
+            let new_counter = old_counter + 1;
             self.counter.write(new_counter);
             self.emit(CounterIncreased { counter: new_counter });
         }
 
-        fn decrease_counter(ref self: ContractState){
-            let old_counter= self.counter.read();
+        fn decrease_counter(ref self: ContractState) {
+            let old_counter = self.counter.read();
             assert(old_counter > 0, 'Counter can\'t be negative');
-            let new_counter= old_counter - 1;
+            let new_counter = old_counter - 1;
             self.counter.write(new_counter);
             self.emit(CounterDecreased { counter: new_counter });
         }
 
-        fn reset_counter(ref self: ContractState){
+        fn reset_counter(ref self: ContractState) {
             self.ownable.assert_only_owner();
             self.counter.write(0);
         }
-
     }
 }
